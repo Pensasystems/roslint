@@ -561,7 +561,7 @@ _line_length = 80
 
 # The allowed extensions for file names
 # This is set by --extensions flag.
-_valid_extensions = set(['cc', 'h', 'cpp', 'cu', 'cuh'])
+_valid_extensions = set(['cc', 'h', 'hpp', 'cpp', 'cu', 'cuh'])
 
 # Treat all headers starting with 'h' equally: .h, .hpp, .hxx etc.
 # This is set by --headers flag.
@@ -1887,10 +1887,8 @@ def GetHeaderGuardCPPVariable(filename):
 
 def CheckForHeaderGuard(filename, clean_lines, error):
   """Checks that the file contains a header guard.
-
   Logs an error if no #ifndef header guard is present.  For other
   headers, checks that the full pathname is used.
-
   Args:
     filename: The name of the C++ header file.
     clean_lines: A CleansedLines instance containing the file.
@@ -1906,6 +1904,11 @@ def CheckForHeaderGuard(filename, clean_lines, error):
   raw_lines = clean_lines.lines_without_raw_strings
   for i in raw_lines:
     if Search(r'//\s*NOLINT\(build/header_guard\)', i):
+      return
+
+  # Allow pragma once instead of header guards
+  for i in raw_lines:
+    if Search(r'^\s*#pragma\s+once', i):
       return
 
   cppvar = GetHeaderGuardCPPVariable(filename)
@@ -1981,6 +1984,7 @@ def CheckForHeaderGuard(filename, clean_lines, error):
   # Didn't find anything
   error(filename, endif_linenum, 'build/header_guard', 5,
         '#endif line should be "#endif  // %s"' % cppvar)
+
 
 
 def CheckHeaderFileIncluded(filename, include_state, error):
@@ -5847,8 +5851,6 @@ def FlagCxx11Features(filename, clean_lines, linenum, error):
                                       'condition_variable',
                                       'fenv.h',
                                       'future',
-                                      'mutex',
-                                      'thread',
                                       'chrono',
                                       'ratio',
                                       'regex',
